@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<!-- saved from url=(0056)http://www.smartjava.org/examples/webaudio/example3.html -->
+<html xmlns="http://www.w3.org/1999/html" class="gr__smartjava_org">
+<title>Loading and playing a sound with the Web Audio API</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<style>
+  * {
+    font-family: sans-serif;
+  }
+</style>
+</head>
+
+<body style="background-color: white;" data-gr-c-s-loaded="true">
+
+  <audio autoplay crossOrigin="anonymous" controls id="player" src="http://coza.out.airtime.pro:8000/coza_a"></audio>
+
+  <canvas id="canvas" width="1000" height="200" style="display: block; -webkit-box-reflect: below;"></canvas>
+
+  <script type="text/javascript">
+    // create the audio context (chrome only for now)
+
+    if (!window.AudioContext) {
+      if (!window.webkitAudioContext) {
+        alert('no audiocontext found');
+      }
+      window.AudioContext = window.webkitAudioContext;
+    }
+    var context = new AudioContext();
+    var audioBuffer;
+    var sourceNode;
+    var analyser;
+    var javascriptNode;
+
+    // get the context from the canvas to draw on
+    var ctx = $("#canvas").get()[0].getContext("2d");
+
+    // create a gradient for the fill. Note the strange
+    // offset, since the gradient is calculated based on
+    // the canvas, not the specific element we draw
+    var gradient = ctx.createLinearGradient(0, 0, 0, 180);
+    gradient.addColorStop(1, '#000000');
+    gradient.addColorStop(0.75, '#ff0000');
+    gradient.addColorStop(0.25, '#ffff00');
+    gradient.addColorStop(0, '#ffffff');
+
+
+    // load the sound
+    setupAudioNodes();
+    // loadSound("Free Indeed by Timothy Reddick.mp3");
+
+    function setupAudioNodes() {
+
+      // setup a javascript node
+      javascriptNode = context.createScriptProcessor(2048, 1, 1);
+      // connect to destination, else it isn't called
+      javascriptNode.connect(context.destination);
+
+
+      // setup a analyzer
+      analyser = context.createAnalyser();
+      analyser.smoothingTimeConstant = 0.3;
+      analyser.fftSize = 512;
+
+      audioTag = document.querySelector('audio');
+      var sourceNode = context.createMediaElementSource(audioTag);
+      sourceNode.connect(analyser);
+      analyser.connect(javascriptNode);
+      sourceNode.connect(context.destination);
+
+    }
+
+    // }
+
+    // log if an error occurs
+    function onError(e) {
+      console.log(e);
+    }
+
+    // when the javascript node is called
+    // we use information from the analyzer node
+    // to draw the volume
+    javascriptNode.onaudioprocess = function() {
+
+      // get the average for the first channel
+      var array = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(array);
+
+      // clear the current state
+      ctx.clearRect(0, 0, 1000, 200);
+
+      // set the fill style
+      ctx.fillStyle = gradient;
+      drawSpectrum(array);
+
+    }
+
+    function drawSpectrum(array) {
+      for (var i = 0; i < (array.length); i++) {
+        var value = array[i];
+
+        ctx.fillRect(i * 5, 200 - value, 3, 210);
+          //console.log([i,value])
+      }
+    };
+  </script>
+
+
+</body>
+
+</html>
